@@ -1,6 +1,6 @@
 package eu.hansolo.crac8;
 
-//import jdk.crac.*;
+import jdk.crac.*;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +14,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 
-public class Main { //implements Resource {
+public class Main implements Resource {
     private static final Random                         RND              = new Random();
     private static final long                           RUNTIME_IN_NS    = 10_000_000_000l;
     private static final int                            RANGE            = 500_000;
@@ -38,7 +38,7 @@ public class Main { //implements Resource {
             return RESULTS_SYNC.size();
         };
 
-        //Core.getGlobalContext().register(Main.this);
+        Core.getGlobalContext().register(Main.this);
 
         init();
 
@@ -51,7 +51,7 @@ public class Main { //implements Resource {
         System.out.println("Total time of compilation -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
     }
 
-    /*
+
     @Override public void beforeCheckpoint(Context<? extends Resource> context) throws Exception {
         executorService.shutdown();
         executorService.awaitTermination(1, TimeUnit.SECONDS);
@@ -75,7 +75,7 @@ public class Main { //implements Resource {
         System.out.println("Total number of loaded classes -> " + ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount());
         System.out.println("Total time of compilation -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
     }
-    */
+    
 
     private void init() {
         randomNumberPool.clear();
