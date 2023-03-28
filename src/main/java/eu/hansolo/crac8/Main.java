@@ -1,6 +1,6 @@
 package eu.hansolo.crac8;
 
-//import jdk.crac.*;
+import jdk.crac.*;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,7 +8,6 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,21 +15,21 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 
-public class Main { //implements Resource {
-    private static final long                          RUNTIME_IN_NS = 5_000_000_000l;
-    private static final int                           RANDOM_RANGE  = 25_000;
-    private static final int                           RANGE         = 100_000_000;
-    private static final long                          SECOND_IN_NS  = 1_000_000_000;
-    private final        Callable<Integer>             randomTask;
-    private final        CopyOnWriteArrayList<Integer> randomNumberPool;
-    private final        Callable<Integer>             task;
-    private final        CopyOnWriteArrayList<Integer> numberPool;
-    private              ExecutorService               executorService;
-    private static       long                          startTime;
+public class Main implements Resource {
+    private static final long               RUNTIME_IN_NS = 10_000_000_000l;
+    private static final int                RANDOM_RANGE  = 25_000;
+    private static final int                RANGE         = 100_000_000;
+    private static final long               SECOND_IN_NS  = 1_000_000_000;
+    private final        Callable<Integer>  randomTask;
+    private final        ArrayList<Integer> randomNumberPool;
+    private final        Callable<Integer>  task;
+    private final        ArrayList<Integer> numberPool;
+    private              ExecutorService    executorService;
+    private static       long               startTime;
 
 
     public Main() {
-        //Core.getGlobalContext().register(Main.this);
+        Core.getGlobalContext().register(Main.this);
 
         randomNumberPool = createRandomNumberPool();
         numberPool       = createNumberPool();
@@ -45,7 +44,7 @@ public class Main { //implements Resource {
             return results.size();
         };
         task             = () -> {
-            final List<String> results = new ArrayList<>();
+            final ArrayList<String> results = new ArrayList<>(RANGE);
             int counter = 0;
             while(System.nanoTime() - startTime < RUNTIME_IN_NS) {
                 final int     number  = numberPool.get(counter);
@@ -66,7 +65,7 @@ public class Main { //implements Resource {
         System.out.println("Total time of compilation          -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
     }
 
-    /*
+
     @Override public void beforeCheckpoint(Context<? extends Resource> context) throws Exception { }
 
     @Override public void afterRestore(Context<? extends Resource> context) throws Exception {
@@ -84,7 +83,7 @@ public class Main { //implements Resource {
         System.out.println("Total number of loaded classes     -> " + ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount());
         System.out.println("Total time of compilation          -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
     }
-    */
+    
 
     private void start() {
         try {
@@ -101,7 +100,7 @@ public class Main { //implements Resource {
     }
 
     private void startAsync() {
-        final List<String> results = new ArrayList<>();
+        final ArrayList<String> results = new ArrayList<>(RANGE);
         int counter = 0;
         while(System.nanoTime() - startTime < RUNTIME_IN_NS) {
             //final int number  = randomNumberPool.get(ThreadLocalRandom.current().nextInt(randomNumberPool.size() - 1));
@@ -136,22 +135,22 @@ public class Main { //implements Resource {
         return isPrime;
     }
 
-    private CopyOnWriteArrayList<Integer> createRandomNumberPool() {
+    private ArrayList<Integer> createRandomNumberPool() {
         final Random rnd = new Random();
-        final List<Integer> randomNumberPool = new ArrayList<>(5_000_000);
+        final ArrayList<Integer> randomNumberPool = new ArrayList<>(5_000_000);
         for (int i = 0 ; i < 5_000_000 ; i++) {
             final int number = rnd.nextInt(RANDOM_RANGE);
             randomNumberPool.add(number);
         }
-        return new CopyOnWriteArrayList<>(randomNumberPool);
+        return randomNumberPool;
     }
 
-    private CopyOnWriteArrayList<Integer> createNumberPool() {
+    private ArrayList<Integer> createNumberPool() {
         final ArrayList<Integer> numberPool = new ArrayList<>(RANGE);
         for (int i = 0; i < RANGE; i++) {
             numberPool.add(i);
         }
-        return new CopyOnWriteArrayList<>(numberPool);
+        return numberPool;
     }
 
 
