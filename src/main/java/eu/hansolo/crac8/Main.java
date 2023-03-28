@@ -21,23 +21,13 @@ public class Main implements Resource {
     private static final long                           SECOND_IN_NS     = 1_000_000_000;
     private static final List<String>                   RESULTS_SYNC     = new ArrayList<>();
     private static final List<String>                   RESULTS_ASYNC    = new ArrayList<>();
-    private        final List<Integer>                  randomNumberPool = new ArrayList<>();
-    private              ExecutorService                executorService  = Executors.newSingleThreadExecutor();
-    private        final Callable<Integer>              task;
+    private              Callable<Integer>              task;
+    private              List<Integer>                  randomNumberPool;
+    private              ExecutorService                executorService;
     private static       long                           startTime;
 
 
     public Main() {
-        // Define task
-        task = () -> {
-            while(System.nanoTime() - startTime < RUNTIME_IN_NS) {
-                final int     number  = randomNumberPool.get(ThreadLocalRandom.current().nextInt(randomNumberPool.size() - 1));
-                final boolean isPrime = isPrimeLoop(number);
-                RESULTS_SYNC.add(number + " -> " + isPrime);
-            }
-            return RESULTS_SYNC.size();
-        };
-
         Core.getGlobalContext().register(Main.this);
 
         init();
@@ -52,16 +42,26 @@ public class Main implements Resource {
     }
 
 
-    @Override public void beforeCheckpoint(Context<? extends Resource> context) throws Exception {
-        executorService.shutdown();
-        executorService.awaitTermination(1, TimeUnit.SECONDS);
-        if (!executorService.isShutdown()) { executorService.shutdownNow(); }
+    private void init() {
+        // Define task
+        task             = () -> {
+            while(System.nanoTime() - startTime < RUNTIME_IN_NS) {
+                final int     number  = randomNumberPool.get(ThreadLocalRandom.current().nextInt(randomNumberPool.size() - 1));
+                final boolean isPrime = isPrimeLoop(number);
+                RESULTS_SYNC.add(number + " -> " + isPrime);
+            }
+            return RESULTS_SYNC.size();
+        };
+        randomNumberPool = createRandomNumberPool();
+        executorService  = Executors.newSingleThreadExecutor();
     }
+
+
+    @Override public void beforeCheckpoint(Context<? extends Resource> context) throws Exception { }
 
     @Override public void afterRestore(Context<? extends Resource> context) throws Exception {
         startTime = System.nanoTime();
-        
-        final int noOfThreads = Runtime.getRuntime().availableProcessors();
+
         executorService = Executors.newSingleThreadExecutor();
 
         RESULTS_SYNC.clear();
@@ -75,12 +75,7 @@ public class Main implements Resource {
         System.out.println("Total number of loaded classes -> " + ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount());
         System.out.println("Total time of compilation -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
     }
-    
 
-    private void init() {
-        randomNumberPool.clear();
-        randomNumberPool.addAll(createRandomNumberPool());
-    }
 
     private void start() {
         try {
@@ -145,6 +140,6 @@ public class Main implements Resource {
         new Main();
 
         // Keep JVM running to be able to create checkpoint from other shell
-        try { while (true) { Thread.sleep(1000); } } catch (InterruptedException e) { }
+        //try { while (true) { Thread.sleep(1000); } } catch (InterruptedException e) { }
     }
 }
