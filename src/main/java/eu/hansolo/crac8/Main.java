@@ -16,12 +16,14 @@ import java.util.concurrent.TimeUnit;
 
 
 public class Main implements Resource {
-    private static final Random            RND           = new Random();
     private static final long              RUNTIME_IN_NS = 5_000_000_000l;
-    private static final int               RANGE         = 25_000;
+    private static final int               RANDOM_RANGE  = 25_000;
+    private static final int               RANGE         = 100_000_000;
     private static final long              SECOND_IN_NS  = 1_000_000_000;
-    private        final Callable<Integer> task;
-    private        final List<Integer>     randomNumberPool;
+    private final        Callable<Integer> randomTask;
+    private final        List<Integer>     randomNumberPool;
+    private final        Callable<Integer> task;
+    private final        List<Integer>     numberPool;
     private              ExecutorService   executorService;
     private static       long              startTime;
 
@@ -30,13 +32,25 @@ public class Main implements Resource {
         Core.getGlobalContext().register(Main.this);
 
         randomNumberPool = createRandomNumberPool();
+        numberPool       = createNumberPool();
         executorService  = Executors.newSingleThreadExecutor();
-        task             = () -> {
+        randomTask       = () -> {
             final List<String> results = new ArrayList<>();
             while(System.nanoTime() - startTime < RUNTIME_IN_NS) {
                 final int     number  = randomNumberPool.get(ThreadLocalRandom.current().nextInt(randomNumberPool.size() - 1));
                 final boolean isPrime = isPrimeLoop(number);
                 results.add(number + " -> " + isPrime);
+            }
+            return results.size();
+        };
+        task             = () -> {
+            final List<String> results = new ArrayList<>();
+            int counter = 0;
+            while(System.nanoTime() - startTime < RUNTIME_IN_NS) {
+                final int     number  = numberPool.get(counter);
+                final boolean isPrime = isPrimeLoop(number);
+                results.add(number + " -> " + isPrime);
+                counter++;
             }
             return results.size();
         };
@@ -69,13 +83,13 @@ public class Main implements Resource {
         System.out.println("Total number of loaded classes     -> " + ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount());
         System.out.println("Total time of compilation          -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
     }
-    
+
 
     private void start() {
         try {
+            //final long numberOfTransactions = this.executorService.submit(randomTask).get();
             final long numberOfTransactions = this.executorService.submit(task).get();
-            System.out.println("Number of sync transcations in " + (RUNTIME_IN_NS / SECOND_IN_NS) + "s  -> " + String.format(Locale.US, "%,d", numberOfTransactions));
-
+            System.out.println("Number of sync transactions in " + (RUNTIME_IN_NS / SECOND_IN_NS) + "s  -> " + String.format(Locale.US, "%,d", numberOfTransactions));
 
             executorService.shutdown();
             executorService.awaitTermination(1, TimeUnit.SECONDS);
@@ -87,8 +101,10 @@ public class Main implements Resource {
 
     private void startAsync() {
         final List<String> results = new ArrayList<>();
+        int counter = 0;
         while(System.nanoTime() - startTime < RUNTIME_IN_NS) {
-            final int number  = randomNumberPool.get(ThreadLocalRandom.current().nextInt(randomNumberPool.size() - 1));
+            //final int number  = randomNumberPool.get(ThreadLocalRandom.current().nextInt(randomNumberPool.size() - 1));
+            final int number  = numberPool.get(counter);
             CompletableFuture<Boolean> cpf = CompletableFuture.supplyAsync(() -> {
                 if (number < 1) { return false; }
                 boolean isPrime = Boolean.TRUE;
@@ -102,9 +118,10 @@ public class Main implements Resource {
             cpf.thenAccept(result -> {
                 if (System.nanoTime() - startTime < RUNTIME_IN_NS) { results.add(number + " -> " + result); }
             });
+            counter++;
         }
         final long numberOfTransactions = results.size();
-        System.out.println("Number of async transcations in " + (RUNTIME_IN_NS / SECOND_IN_NS) + "s -> " + String.format(Locale.US, "%,d", numberOfTransactions));
+        System.out.println("Number of async transactions in " + (RUNTIME_IN_NS / SECOND_IN_NS) + "s -> " + String.format(Locale.US, "%,d", numberOfTransactions));
     }
 
     private boolean isPrimeLoop(final long number) {
@@ -119,12 +136,21 @@ public class Main implements Resource {
     }
 
     private List<Integer> createRandomNumberPool() {
+        final Random rnd = new Random();
         final List<Integer> randomNumberPool = new ArrayList<>(1_000_000);
         for (int i = 0 ; i < 5_000_000 ; i++) {
-            final int number = RND.nextInt(RANGE);
+            final int number = rnd.nextInt(RANDOM_RANGE);
             randomNumberPool.add(number);
         }
         return randomNumberPool;
+    }
+
+    private List<Integer> createNumberPool() {
+        final List<Integer> numberPool = new ArrayList<>(1_000_000);
+        for (int i = 0; i < RANGE; i++) {
+            numberPool.add(i);
+        }
+        return numberPool;
     }
 
 
