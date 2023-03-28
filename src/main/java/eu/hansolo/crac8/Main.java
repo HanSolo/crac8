@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -21,9 +22,9 @@ public class Main implements Resource {
     private static final int               RANGE         = 100_000_000;
     private static final long              SECOND_IN_NS  = 1_000_000_000;
     private final        Callable<Integer> randomTask;
-    private final        List<Integer>     randomNumberPool;
+    private final        CopyOnWriteArrayList<Integer>     randomNumberPool;
     private final        Callable<Integer> task;
-    private final        List<Integer>     numberPool;
+    private final        CopyOnWriteArrayList<Integer>     numberPool;
     private              ExecutorService   executorService;
     private static       long              startTime;
 
@@ -135,9 +136,9 @@ public class Main implements Resource {
         return isPrime;
     }
 
-    private List<Integer> createRandomNumberPool() {
+    private CopyOnWriteArrayList<Integer> createRandomNumberPool() {
         final Random rnd = new Random();
-        final List<Integer> randomNumberPool = new ArrayList<>(1_000_000);
+        final CopyOnWriteArrayList<Integer> randomNumberPool = new CopyOnWriteArrayList<>();
         for (int i = 0 ; i < 5_000_000 ; i++) {
             final int number = rnd.nextInt(RANDOM_RANGE);
             randomNumberPool.add(number);
@@ -145,8 +146,8 @@ public class Main implements Resource {
         return randomNumberPool;
     }
 
-    private List<Integer> createNumberPool() {
-        final List<Integer> numberPool = new ArrayList<>(1_000_000);
+    private CopyOnWriteArrayList<Integer> createNumberPool() {
+        final CopyOnWriteArrayList<Integer> numberPool = new CopyOnWriteArrayList<>();
         for (int i = 0; i < RANGE; i++) {
             numberPool.add(i);
         }
