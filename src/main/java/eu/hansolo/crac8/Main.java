@@ -4,6 +4,7 @@ import jdk.crac.*;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -16,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 public class Main implements Resource {
     private static final Random            RND           = new Random();
-    private static final long              RUNTIME_IN_NS = 2_000_000_000;
+    private static final long              RUNTIME_IN_NS = 5_000_000_000l;
     private static final int               RANGE         = 25_000;
     private static final long              SECOND_IN_NS  = 1_000_000_000;
     private        final Callable<Integer> task;
@@ -40,19 +41,22 @@ public class Main implements Resource {
             return results.size();
         };
 
+        System.out.println("Start without CRaC");
         start();
 
         startTime = System.nanoTime();
         startAsync();
 
-        System.out.println("Total number of loaded classes -> " + ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount());
-        System.out.println("Total time of compilation -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
+        System.out.println("Total number of loaded classes     -> " + ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount());
+        System.out.println("Total time of compilation          -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
     }
 
 
     @Override public void beforeCheckpoint(Context<? extends Resource> context) throws Exception { }
 
     @Override public void afterRestore(Context<? extends Resource> context) throws Exception {
+        System.out.println("Start using CRaC");
+
         startTime = System.nanoTime();
 
         executorService = Executors.newSingleThreadExecutor();
@@ -62,15 +66,15 @@ public class Main implements Resource {
         startTime = System.nanoTime();
         startAsync();
 
-        System.out.println("Total number of loaded classes -> " + ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount());
-        System.out.println("Total time of compilation -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
+        System.out.println("Total number of loaded classes     -> " + ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount());
+        System.out.println("Total time of compilation          -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
     }
-
+    
 
     private void start() {
         try {
             final long numberOfTransactions = this.executorService.submit(task).get();
-            System.out.println("Number of sync transcations in " + (RUNTIME_IN_NS / SECOND_IN_NS) + "s -> " + numberOfTransactions);
+            System.out.println("Number of sync transcations in " + (RUNTIME_IN_NS / SECOND_IN_NS) + "s  -> " + String.format(Locale.US, "%,d", numberOfTransactions));
 
 
             executorService.shutdown();
@@ -100,7 +104,7 @@ public class Main implements Resource {
             });
         }
         final long numberOfTransactions = results.size();
-        System.out.println("Number of async transcations in " + (RUNTIME_IN_NS / SECOND_IN_NS) + "s -> " + numberOfTransactions);
+        System.out.println("Number of async transcations in " + (RUNTIME_IN_NS / SECOND_IN_NS) + "s -> " + String.format(Locale.US, "%,d", numberOfTransactions));
     }
 
     private boolean isPrimeLoop(final long number) {
