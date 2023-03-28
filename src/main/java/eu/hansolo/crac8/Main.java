@@ -15,22 +15,30 @@ import java.util.concurrent.TimeUnit;
 
 
 public class Main implements Resource {
-    private static final Random                         RND              = new Random();
-    private static final long                           RUNTIME_IN_NS    = 10_000_000_000l;
-    private static final int                            RANGE            = 500_000;
-    private static final long                           SECOND_IN_NS     = 1_000_000_000;
-    private static final List<String>                   RESULTS_SYNC     = new ArrayList<>();
-    private static final List<String>                   RESULTS_ASYNC    = new ArrayList<>();
-    private              Callable<Integer>              task;
-    private              List<Integer>                  randomNumberPool;
-    private              ExecutorService                executorService;
-    private static       long                           startTime;
+    private static final Random            RND           = new Random();
+    private static final long              RUNTIME_IN_NS = 2_000_000_000;
+    private static final int               RANGE         = 25_000;
+    private static final long              SECOND_IN_NS  = 1_000_000_000;
+    private        final Callable<Integer> task;
+    private        final List<Integer>     randomNumberPool;
+    private              ExecutorService   executorService;
+    private static       long              startTime;
 
 
     public Main() {
         Core.getGlobalContext().register(Main.this);
 
-        init();
+        randomNumberPool = createRandomNumberPool();
+        executorService  = Executors.newSingleThreadExecutor();
+        task             = () -> {
+            final List<String> results = new ArrayList<>();
+            while(System.nanoTime() - startTime < RUNTIME_IN_NS) {
+                final int     number  = randomNumberPool.get(ThreadLocalRandom.current().nextInt(randomNumberPool.size() - 1));
+                final boolean isPrime = isPrimeLoop(number);
+                results.add(number + " -> " + isPrime);
+            }
+            return results.size();
+        };
 
         start();
 
@@ -42,30 +50,12 @@ public class Main implements Resource {
     }
 
 
-    private void init() {
-        // Define task
-        task             = () -> {
-            while(System.nanoTime() - startTime < RUNTIME_IN_NS) {
-                final int     number  = randomNumberPool.get(ThreadLocalRandom.current().nextInt(randomNumberPool.size() - 1));
-                final boolean isPrime = isPrimeLoop(number);
-                RESULTS_SYNC.add(number + " -> " + isPrime);
-            }
-            return RESULTS_SYNC.size();
-        };
-        randomNumberPool = createRandomNumberPool();
-        executorService  = Executors.newSingleThreadExecutor();
-    }
-
-
     @Override public void beforeCheckpoint(Context<? extends Resource> context) throws Exception { }
 
     @Override public void afterRestore(Context<? extends Resource> context) throws Exception {
         startTime = System.nanoTime();
 
         executorService = Executors.newSingleThreadExecutor();
-
-        RESULTS_SYNC.clear();
-        RESULTS_ASYNC.clear();
 
         start();
 
@@ -82,6 +72,7 @@ public class Main implements Resource {
             final long numberOfTransactions = this.executorService.submit(task).get();
             System.out.println("Number of sync transcations in " + (RUNTIME_IN_NS / SECOND_IN_NS) + "s -> " + numberOfTransactions);
 
+
             executorService.shutdown();
             executorService.awaitTermination(1, TimeUnit.SECONDS);
             if (!executorService.isShutdown()) { executorService.shutdownNow(); }
@@ -91,6 +82,7 @@ public class Main implements Resource {
     }
 
     private void startAsync() {
+        final List<String> results = new ArrayList<>();
         while(System.nanoTime() - startTime < RUNTIME_IN_NS) {
             final int number  = randomNumberPool.get(ThreadLocalRandom.current().nextInt(randomNumberPool.size() - 1));
             CompletableFuture<Boolean> cpf = CompletableFuture.supplyAsync(() -> {
@@ -104,10 +96,10 @@ public class Main implements Resource {
                 return isPrime;
             });
             cpf.thenAccept(result -> {
-                if (System.nanoTime() - startTime < RUNTIME_IN_NS) { RESULTS_ASYNC.add(number + " -> " + result); }
+                if (System.nanoTime() - startTime < RUNTIME_IN_NS) { results.add(number + " -> " + result); }
             });
         }
-        final long numberOfTransactions = RESULTS_ASYNC.size();
+        final long numberOfTransactions = results.size();
         System.out.println("Number of async transcations in " + (RUNTIME_IN_NS / SECOND_IN_NS) + "s -> " + numberOfTransactions);
     }
 
@@ -140,6 +132,10 @@ public class Main implements Resource {
         new Main();
 
         // Keep JVM running to be able to create checkpoint from other shell
-        //try { while (true) { Thread.sleep(1000); } } catch (InterruptedException e) { }
+        if (null != args && args.length > 0) {
+            if (args[0].equals("keeprunning")) {
+                try { while (true) { Thread.sleep(1000); } } catch (InterruptedException e) { }
+            }
+        }
     }
 }
