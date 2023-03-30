@@ -43,6 +43,7 @@ jar {
                 'Specification-Title'   : project.name,
                 'Specification-Version' : project.version,
                 'Implementation-Title'  : project.name,
+                'Class-Path'            : '${project.name}-${project.version}.jar',
                 'Main-Class'            : application.mainClass.get()
 
         )
