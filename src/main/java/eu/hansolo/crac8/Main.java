@@ -1,68 +1,48 @@
 package eu.hansolo.crac8;
 
 import jdk.crac.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.stream.JsonReader;
+
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
 public class Main implements Resource {
-    private static final long               RUNTIME_IN_NS = 10_000_000_000l;
-    private static final int                RANDOM_RANGE  = 25_000;
-    private static final int                RANGE         = 100_000_000;
-    private static final long               SECOND_IN_NS  = 1_000_000_000;
-    private final        Callable<Integer>  randomTask;
-    private final        ArrayList<Integer> randomNumberPool;
-    private final        Callable<Integer>  task;
-    private final        ArrayList<Integer> numberPool;
-    private              ExecutorService    executorService;
-    private static       long               startTime;
+    private static final String     NAMES_FILE        = "names.json";
+    private static final long       MILLISECOND_IN_NS = 1_000_000;
+    private              List<Name> allNames;
+    private static       long       startTime;
 
 
     public Main() {
+        System.out.println("Start without CRaC");
+
         Core.getGlobalContext().register(Main.this);
 
-        randomNumberPool = createRandomNumberPool();
-        numberPool       = createNumberPool();
-        executorService  = Executors.newSingleThreadExecutor();
-        randomTask       = () -> {
-            final List<String> results = new ArrayList<>();
-            while(System.nanoTime() - startTime < RUNTIME_IN_NS) {
-                final int     number  = randomNumberPool.get(ThreadLocalRandom.current().nextInt(randomNumberPool.size() - 1));
-                final boolean isPrime = isPrimeLoop(number);
-                results.add(number + " -> " + isPrime);
-            }
-            return results.size();
-        };
-        task             = () -> {
-            final ArrayList<String> results = new ArrayList<>(RANGE);
-            int counter = 0;
-            while(System.nanoTime() - startTime < RUNTIME_IN_NS) {
-                final int     number  = numberPool.get(counter);
-                final boolean isPrime = isPrimeLoop(number);
-                results.add(number + " -> " + isPrime);
-                counter++;
-            }
-            return results.size();
-        };
+        init();
 
-        System.out.println("Start without CRaC");
-        start();
+        printRandomGirlNames(5);
 
-        startTime = System.nanoTime();
-        startAsync();
+        printRandomBoyNames(5);
 
-        System.out.println("Total number of loaded classes     -> " + ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount());
-        System.out.println("Total time of compilation          -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
+        System.out.println("Time to frist response         -> " + ((System.nanoTime() - startTime) / MILLISECOND_IN_NS) + "ms");
+        System.out.println("Total number of loaded classes -> " + ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount());
+        System.out.println("Total time of compilation      -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
+    }
+
+    private void init() {
+        allNames = loadNames();
     }
 
 
@@ -73,84 +53,75 @@ public class Main implements Resource {
 
         startTime = System.nanoTime();
 
-        executorService = Executors.newSingleThreadExecutor();
+        printRandomGirlNames(5);
 
-        start();
+        printRandomBoyNames(5);
 
-        startTime = System.nanoTime();
-        startAsync();
-
-        System.out.println("Total number of loaded classes     -> " + ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount());
-        System.out.println("Total time of compilation          -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
-    }
-    
-
-    private void start() {
-        try {
-            //final long numberOfTransactions = this.executorService.submit(randomTask).get();
-            final long numberOfTransactions = this.executorService.submit(task).get();
-            System.out.println("Number of sync transactions in " + (RUNTIME_IN_NS / SECOND_IN_NS) + "s  -> " + String.format(Locale.US, "%,d", numberOfTransactions));
-
-            executorService.shutdown();
-            executorService.awaitTermination(1, TimeUnit.SECONDS);
-            if (!executorService.isShutdown()) { executorService.shutdownNow(); }
-        } catch (InterruptedException | ExecutionException e) {
-            System.out.println("Interrupted");
-        }
+        System.out.println("Time to frist response         -> " + ((System.nanoTime() - startTime) / MILLISECOND_IN_NS) + "ms");
+        System.out.println("Total number of loaded classes -> " + ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount());
+        System.out.println("Total time of compilation      -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
     }
 
-    private void startAsync() {
-        final ArrayList<String> results = new ArrayList<>(RANGE);
-        int counter = 0;
-        while(System.nanoTime() - startTime < RUNTIME_IN_NS) {
-            //final int number  = randomNumberPool.get(ThreadLocalRandom.current().nextInt(randomNumberPool.size() - 1));
-            final int number  = numberPool.get(counter);
-            CompletableFuture<Boolean> cpf = CompletableFuture.supplyAsync(() -> {
-                if (number < 1) { return false; }
-                boolean isPrime = Boolean.TRUE;
-                for (long n = number; n > 0; n--) {
-                    if (n == number || n == 1 || number % n != 0) { continue; }
-                    isPrime = Boolean.FALSE;
-                    break;
-                }
-                return isPrime;
-            });
-            cpf.thenAccept(result -> {
-                if (System.nanoTime() - startTime < RUNTIME_IN_NS) { results.add(number + " -> " + result); }
-            });
-            counter++;
+
+    private List<Name> getRandomNames(final List<Name> allNames, final int numberOfRandomNames, final Gender gender) {
+        if (numberOfRandomNames > allNames.size()) { throw new IllegalArgumentException("Given numberOfRandomNames cannot be greater than number of all names"); }
+        if (numberOfRandomNames < 1) { throw new IllegalArgumentException("numberOfRandomNames should at least be 1"); }
+
+        final List<Name> namesByGivenGender = allNames.stream().filter(name -> gender == name.getGender()).collect(Collectors.toList());
+        if (namesByGivenGender.isEmpty()) { return new ArrayList<>(); }
+
+        final Random    rnd         = new Random();
+        final Set<Name> randomNames = new HashSet<>();
+        while(randomNames.size() < 5) {
+            randomNames.add(namesByGivenGender.get(rnd.nextInt(namesByGivenGender.size() - 1)));
         }
-        final long numberOfTransactions = results.size();
-        System.out.println("Number of async transactions in " + (RUNTIME_IN_NS / SECOND_IN_NS) + "s -> " + String.format(Locale.US, "%,d", numberOfTransactions));
+        return new ArrayList<>(randomNames);
     }
 
-    private boolean isPrimeLoop(final long number) {
-        if (number < 1) { return false; }
-        boolean isPrime = true;
-        for (long n = number ; n > 0 ; n--) {
-            if (n == number || n == 1 || number % n != 0) { continue; }
-            isPrime = false;
-            break;
-        }
-        return isPrime;
+    private void printRandomGirlNames(final int amount) {
+        final List<Name> fiveRandomGirlNames = getRandomNames(allNames, amount, Gender.FEMALE);
+        final List<String> orderedFirstNames = fiveRandomGirlNames.stream().map(name -> name.getFirstName()).collect(Collectors.toList());
+        Collections.sort(orderedFirstNames);
+        System.out.println("\n" + amount + " random names for girls:");
+        orderedFirstNames.forEach(firstName -> System.out.println(firstName));
+        System.out.println();
     }
 
-    private ArrayList<Integer> createRandomNumberPool() {
-        final Random rnd = new Random();
-        final ArrayList<Integer> randomNumberPool = new ArrayList<>(5_000_000);
-        for (int i = 0 ; i < 5_000_000 ; i++) {
-            final int number = rnd.nextInt(RANDOM_RANGE);
-            randomNumberPool.add(number);
-        }
-        return randomNumberPool;
+    private void printRandomBoyNames(final int amount) {
+        final List<Name> fiveRandomBoyNames = getRandomNames(allNames, amount, Gender.MALE);
+        final List<String> orderedFirstNames = fiveRandomBoyNames.stream().map(name -> name.getFirstName()).collect(Collectors.toList());
+        Collections.sort(orderedFirstNames);
+        System.out.println("\n" + amount + " random names for boys:");
+        orderedFirstNames.forEach(firstName -> System.out.println(firstName));
+        System.out.println();
     }
 
-    private ArrayList<Integer> createNumberPool() {
-        final ArrayList<Integer> numberPool = new ArrayList<>(RANGE);
-        for (int i = 0; i < RANGE; i++) {
-            numberPool.add(i);
+    private void printRandomNeutralNames(final int amount) {
+        final List<Name> fiveRandomNeutralNames = getRandomNames(allNames, amount, Gender.NEUTRAL);
+        final List<String> orderedFirstNames = fiveRandomNeutralNames.stream().map(name -> name.getFirstName()).collect(Collectors.toList());
+        Collections.sort(orderedFirstNames);
+        System.out.println("\n" + amount + " random names for girls or boys:");
+        orderedFirstNames.forEach(firstName -> System.out.println(firstName));
+        System.out.println();
+    }
+
+    private List<Name> loadNames() {
+        final long       start      = System.nanoTime();
+        final List<Name> namesFound = new ArrayList<>();
+        try(JsonReader jsonReader = new JsonReader(new InputStreamReader(Main.class.getResourceAsStream(NAMES_FILE), StandardCharsets.UTF_8))) {
+            Gson gson = new GsonBuilder().create();
+            jsonReader.beginArray();
+            while (jsonReader.hasNext()){
+                NameDto nameDto = gson.fromJson(jsonReader, NameDto.class);
+                namesFound.add(nameDto.getNameObj());
+            }
+            jsonReader.endArray();
+        }  catch (IOException e) {
+            return namesFound;
         }
-        return numberPool;
+
+        System.out.println("Loading " + namesFound.size() + " names took " + ((System.nanoTime() - start) / MILLISECOND_IN_NS) + "ms");
+        return namesFound;
     }
 
 
@@ -161,7 +132,7 @@ public class Main implements Resource {
         System.out.println("JVM startup time -> " + (currentTime - vmStartTime) + "ms");
         new Main();
 
-        // Keep JVM running to be able to create checkpoint from other shell
+        // If commandline argument 'keeprunning' , start thread to keep JVM running to be able to create checkpoint from other shell
         if (null != args && args.length > 0) {
             if (args[0].equals("keeprunning")) {
                 try { while (true) { Thread.sleep(1000); } } catch (InterruptedException e) { }
