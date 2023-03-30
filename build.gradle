@@ -60,6 +60,12 @@ shadowJar {
     archiveClassifier.set('fat');
 }
 
+task copyDependencies(type: Copy) {
+    from(configurations.runtimeClasspath)
+    into "${buildDir}/dependencies/flat"
+}
+assemble.dependsOn(copyDependencies)
+
 if (JavaVersion.current().isJava8Compatible()){
     allprojects {
         tasks.withType(Javadoc) {
