@@ -12,6 +12,16 @@ take around 30-50 ms because the data was already loaded from the file and now
 one can directly access it which leads to the fast "startup" time.
 
 
+#### Build the jar file on the target platform:
+To create the jar file you need to build it on the target platform (Linux x64) using
+the a JDK that supports CRaC. You can find builds here [github.com/CRaC](https://github.com/CRaC/openjdk-builds/releases).
+1. make sure you set JAVA_HOME to the JVM with CRaC support
+2. go the project folder
+3. run ```gradlew clean build```
+4. Now you should find the the jar at ```build/libs/crac8-17.0.0-fat.jar```
+5. This jar file will later be used to run on the docker container
+
+
 #### Login into docker:
 ```docker login```
 
