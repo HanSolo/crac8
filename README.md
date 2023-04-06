@@ -1,5 +1,17 @@
 ### Running the demo in a docker container (on a Linux x64 machine)
 
+#### Description
+The crac8 demo should emulate a service that needs to load around 260000 names from a 
+json file at startup. The "service" provides methods to create a number of random
+names for either boys or girls. When started normally it will first load the data
+from the json file into datastructures and then will create 5 random names for girls
+and 5 random names for boys.
+This will take around 1-2 sec depending on the machine you run it on.
+Once you create a checkpoint and restore it from there, the response will only
+take around 30-50 ms because the data was already loaded from the file and now
+one can directly access it which leads to the fast "startup" time.
+
+
 #### Login into docker:
 ```docker login```
 
