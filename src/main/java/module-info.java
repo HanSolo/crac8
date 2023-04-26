@@ -1,7 +1,8 @@
 module eu.hansolo.crac8 {
     requires java.management;
-    //requires transitive org.crac;
+
     requires com.google.gson;
+    requires org.crac;
 
     opens eu.hansolo.crac8 to com.google.gson;
 

@@ -1,6 +1,6 @@
 package eu.hansolo.crac8;
 
-import jdk.crac.*;
+import org.crac.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonReader;
@@ -11,6 +11,7 @@ import java.lang.management.ManagementFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -72,35 +73,28 @@ public class Main implements Resource {
 
         final Random    rnd         = new Random();
         final Set<Name> randomNames = new HashSet<>();
-        while(randomNames.size() < 5) {
+        while(randomNames.size() < numberOfRandomNames) {
             randomNames.add(namesByGivenGender.get(rnd.nextInt(namesByGivenGender.size() - 1)));
         }
         return new ArrayList<>(randomNames);
     }
 
     private void printRandomGirlNames(final int amount) {
-        final List<Name> fiveRandomGirlNames = getRandomNames(allNames, amount, Gender.FEMALE);
-        final List<String> orderedFirstNames = fiveRandomGirlNames.stream().map(name -> name.getFirstName()).collect(Collectors.toList());
-        Collections.sort(orderedFirstNames);
+        final List<Name> randomGirlNames = getRandomNames(allNames, amount, Gender.FEMALE);
+        Collections.sort(randomGirlNames, Comparator.comparing(Name::getFirstName));
+        final List<String> orderedFirstNames = randomGirlNames.stream().map(name -> name.getFirstName()).collect(Collectors.toList());
+
         System.out.println("\n" + amount + " random names for girls:");
         orderedFirstNames.forEach(firstName -> System.out.println(firstName));
         System.out.println();
     }
 
     private void printRandomBoyNames(final int amount) {
-        final List<Name> fiveRandomBoyNames = getRandomNames(allNames, amount, Gender.MALE);
-        final List<String> orderedFirstNames = fiveRandomBoyNames.stream().map(name -> name.getFirstName()).collect(Collectors.toList());
-        Collections.sort(orderedFirstNames);
-        System.out.println("\n" + amount + " random names for boys:");
-        orderedFirstNames.forEach(firstName -> System.out.println(firstName));
-        System.out.println();
-    }
+        final List<Name> randomBoyNames = getRandomNames(allNames, amount, Gender.MALE);
+        Collections.sort(randomBoyNames, Comparator.comparing(Name::getFirstName));
+        final List<String> orderedFirstNames = randomBoyNames.stream().map(name -> name.getFirstName()).collect(Collectors.toList());
 
-    private void printRandomNeutralNames(final int amount) {
-        final List<Name> fiveRandomNeutralNames = getRandomNames(allNames, amount, Gender.NEUTRAL);
-        final List<String> orderedFirstNames = fiveRandomNeutralNames.stream().map(name -> name.getFirstName()).collect(Collectors.toList());
-        Collections.sort(orderedFirstNames);
-        System.out.println("\n" + amount + " random names for girls or boys:");
+        System.out.println("\n" + amount + " random names for boys:");
         orderedFirstNames.forEach(firstName -> System.out.println(firstName));
         System.out.println();
     }
@@ -113,7 +107,7 @@ public class Main implements Resource {
             jsonReader.beginArray();
             while (jsonReader.hasNext()){
                 NameDto nameDto = gson.fromJson(jsonReader, NameDto.class);
-                namesFound.add(nameDto.getNameObj());
+                namesFound.add(new Name(nameDto.toString()));
             }
             jsonReader.endArray();
         }  catch (IOException e) {
