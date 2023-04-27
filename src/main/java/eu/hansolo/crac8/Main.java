@@ -34,12 +34,9 @@ public class Main implements Resource {
         init();
 
         printRandomGirlNames(5);
-
         printRandomBoyNames(5);
 
-        System.out.println("Time to first response         -> " + ((System.nanoTime() - startTime) / MILLISECOND_IN_NS) + "ms");
-        System.out.println("Total number of loaded classes -> " + ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount());
-        System.out.println("Total time of compilation      -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
+        System.out.println("Time to first response -> " + ((System.nanoTime() - startTime) / MILLISECOND_IN_NS) + "ms");
     }
 
     private void init() {
@@ -55,12 +52,9 @@ public class Main implements Resource {
         startTime = System.nanoTime();
 
         printRandomGirlNames(5);
-
         printRandomBoyNames(5);
 
-        System.out.println("Time to first response         -> " + ((System.nanoTime() - startTime) / MILLISECOND_IN_NS) + "ms");
-        System.out.println("Total number of loaded classes -> " + ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount());
-        System.out.println("Total time of compilation      -> " + ManagementFactory.getCompilationMXBean().getTotalCompilationTime() + "ms");
+        System.out.println("Time to first response -> " + ((System.nanoTime() - startTime) / MILLISECOND_IN_NS) + "ms");
     }
 
 
