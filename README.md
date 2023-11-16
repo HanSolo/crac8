@@ -13,7 +13,7 @@ one can directly access it which leads to the fast "startup" time.
 
 
 #### Build the jar file on the target platform:
-To create the jar file you need to build it on the target platform (Linux x64) using
+To create the jar file you need to build it on the target platform (Linux x64 or aarch64) using
 the a JDK that supports CRaC. You can find builds here [github.com/CRaC](https://github.com/CRaC/openjdk-builds/releases).
 1. make sure you set JAVA_HOME to the JVM with CRaC support
 2. go the project folder
