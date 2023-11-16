@@ -1,7 +1,7 @@
-### Running the demo in a docker container (on a Linux x64 machine)
+### Running the demo in a docker container (on a Linux x64/aarch64 machine)
 
 #### Description
-The crac8 demo should emulate a service that needs to load around 260000 names from a 
+The crac8 demo should emulate a service that needs to load around 258 000 names from a
 json file at startup. The "service" provides methods to create a number of random
 names for either boys or girls. When started normally it will first load the data
 from the json file into datastructures and then will create 5 random names for girls
@@ -20,6 +20,7 @@ the a JDK that supports CRaC. You can find builds here [github.com/CRaC](https:/
 3. run ```gradlew clean build```
 4. Now you should find the the jar at ```build/libs/crac8-17.0.0-fat.jar```
 5. This jar file will later be used to run on the docker container
+6. Make sure to select the correct JDK in the docker file (x64 or aarch64)
 
 
 #### Login into docker:
@@ -48,26 +49,26 @@ the a JDK that supports CRaC. You can find builds here [github.com/CRaC](https:/
 3. In the docker container run</br>
 ```
 cd /opt/app
-java -XX:CRaCCheckpointTo=/opt/crac-files -jar crac8-17.0.0.jar
+java -XX:CRaCCheckpointTo=/opt/crac-files -jar crac8-17.0.0.jar keeprunning
 ```
-4. Note the PID of the program
 
 </br>
 
 #### 2. Start a 2nd shell window and create the checkpoint
 1. Open a second shell window
 2. Run ``` docker exec -it -u root crac8 /bin/bash ```
-3. Wait until the program outputs the results
-4. Take the PID from shell 1 and run ``` jcmd PID JDK.checkpoint```
+3. Execute ``` top ``` command and note the PID of the running java process
+4. Take the PID and run ``` jcmd PID JDK.checkpoint```
 5. In the first shell window the application should have created the checkpoint
-6. In second shell window run ``` exit ``` to get back to your machine
+6. Check the folder /opt/crac-files for the checkpoint files being present
+7. In second shell window run ``` exit ``` to get back to your machine
 
 </br>
 
 #### 3. Commit the current state of the docker container
 1. Now get the CONTAINER_ID from shell window 1 by execute ``` docker ps -a ``` in shell window 2
-2. Run ``` docker commit CONTAINER_ID crac8:checkpoint ``` in shell window 2
-3. Go back to shell window 1 and press CTRL+C to stop the running application
+2. Exit the docker container in shell window 1 by executing ``` exit ```
+3. Run ``` docker commit CONTAINER_ID crac8:checkpoint ``` in shell window 2
 
 </br>
 
